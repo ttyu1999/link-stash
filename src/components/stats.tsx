@@ -27,7 +27,7 @@ export function Stats() {
 
   const totalNotes = notes.length
   const totalCategories = categories.length
-  const allTags = notes.flatMap((note: Note) => note.tags || [])
+  const allTags = notes.flatMap((note: Note) => note.tags)
   const uniqueTags = [...new Set(allTags)].length
   const thisWeekNotes = notes.filter((note: Note) => {
     const noteDate = new Date(note.createdAt)
@@ -80,7 +80,7 @@ export function Stats() {
                 key={stat.title}
                 className="flex items-center gap-3 group"
                 style={{
-                  animationDelay: `${index * 100}ms`,
+                  animationDelay: `${String(index * 100)}ms`,
                 }}
               >
                 {/* 圖標 */}

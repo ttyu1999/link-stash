@@ -85,7 +85,7 @@ export function useDebounce<T>(value: T, delay?: number): T {
   const [debouncedValue, setDebouncedValue] = React.useState<T>(value)
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay || 500)
+    const timer = setTimeout(() => { setDebouncedValue(value); }, delay || 500)
 
     return () => {
       clearTimeout(timer)
@@ -205,7 +205,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
         selectedValue: [...selected],
         input: inputRef.current as HTMLInputElement,
         focus: () => inputRef?.current?.focus(),
-        reset: () => setSelected([]),
+        reset: () => { setSelected([]); },
       }),
       [selected],
     )
@@ -463,7 +463,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
                       e.preventDefault()
                       e.stopPropagation()
                     }}
-                    onClick={() => handleUnselect(option)}
+                    onClick={() => { handleUnselect(option); }}
                   >
                     <X className="h-3 w-3 text-white/80 hover:text-white" />
                   </button>

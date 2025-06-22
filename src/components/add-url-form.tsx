@@ -1,51 +1,58 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
+import { z } from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { PlusIcon, LoaderIcon, LinkIcon, XIcon, SparklesIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { Form, FormField, FormItem, FormControl, FormMessage } from "@/components/ui/form"
 import { saveUrl } from "@/lib/actions"
 import { toast } from "sonner"
 
+const formSchema = z.object({
+  url: z.string().url({ message: "請輸入有效的網址" }),
+})
+
 export function AddUrlForm() {
-  const [url, setUrl] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const queryClient = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      url: "",
+    },
+  })
+  const {
+    formState: { isSubmitting },
+  } = form
+
   useEffect(() => {
-    if (isExpanded && inputRef.current) {
-      inputRef.current.focus()
+    if (isExpanded) {
+      inputRef.current?.focus()
     }
   }, [isExpanded])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!url.trim()) {
-      toast.error("請輸入網址")
-      return
-    }
-
-    setIsLoading(true)
-
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await saveUrl(url.trim())
+      await saveUrl(values.url)
       toast.success("網址保存成功！AI 正在分析內容...")
-      setUrl("")
+      form.reset()
       setIsExpanded(false)
 
-      queryClient.invalidateQueries({ queryKey: ["notes"] })
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notes"] }),
+        queryClient.invalidateQueries({ queryKey: ["categories"] }),
+        queryClient.invalidateQueries({ queryKey: ["stats"] }),
+      ])
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "保存失敗")
-    } finally {
-      setIsLoading(false)
+      const errorMessage = error instanceof Error ? error.message : "保存失敗"
+      form.setError("url", { type: "manual", message: errorMessage })
     }
   }
 
@@ -58,7 +65,9 @@ export function AddUrlForm() {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
 
             <Button
-              onClick={() => setIsExpanded(true)}
+              onClick={() => {
+                setIsExpanded(true)
+              }}
               size="lg"
               className="relative w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 group"
             >
@@ -93,58 +102,74 @@ export function AddUrlForm() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsExpanded(false)}
+                  onClick={() => {
+                    setIsExpanded(false)
+                  }}
                   className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full"
                 >
                   <XIcon className="h-4 w-4" />
                 </Button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="relative">
-                  <Input
-                    ref={inputRef}
-                    placeholder="貼上網址，AI 將自動分析..."
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    disabled={isLoading}
-                    className="h-12 bg-white/60 backdrop-blur-sm border-white/30 focus:border-blue-300 focus:ring-blue-200 rounded-xl"
-                  />
-                  {url && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-3">
-                  <Button
-                    type="submit"
-                    disabled={isLoading || !url.trim()}
-                    className="flex-1 h-11 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-                  >
-                    {isLoading ? (
-                      <>
-                        <LoaderIcon className="h-4 w-4 animate-spin" />
-                        分析中...
-                      </>
-                    ) : (
-                      <>
-                        <SparklesIcon className="h-4 w-4" />
-                        保存
-                      </>
+              <Form {...form}>
+                <form onSubmit={(e) => void form.handleSubmit(onSubmit)(e)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              ref={inputRef}
+                              placeholder="貼上網址，AI 將自動分析..."
+                              disabled={isSubmitting}
+                              className="h-12 bg-white/60 backdrop-blur-sm border-white/30 focus:border-blue-300 focus:ring-blue-200 rounded-xl"
+                            />
+                            {field.value && (
+                              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsExpanded(false)}
-                    className="h-11 px-4 bg-white/60 backdrop-blur-sm border-white/30 hover:bg-white/80 rounded-xl"
-                  >
-                    取消
-                  </Button>
-                </div>
-              </form>
+                  />
+
+                  <div className="flex gap-3">
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 h-11 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <LoaderIcon className="h-4 w-4 animate-spin" />
+                          分析中...
+                        </>
+                      ) : (
+                        <>
+                          <SparklesIcon className="h-4 w-4" />
+                          保存
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsExpanded(false)
+                      }}
+                      className="h-11 px-4 bg-white/60 backdrop-blur-sm border-white/30 hover:bg-white/80 rounded-xl"
+                    >
+                      取消
+                    </Button>
+                  </div>
+                </form>
+              </Form>
             </CardContent>
           </Card>
         )}

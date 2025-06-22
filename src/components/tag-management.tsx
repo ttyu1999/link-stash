@@ -71,8 +71,8 @@ export function TagManagement() {
   )
 
   // 處理選擇標籤
-  const handleTagSelect = (tagName: string, checked: boolean) => {
-    if (checked) {
+  const handleTagSelect = (tagName: string, checked: boolean | 'indeterminate') => {
+    if (checked === true) {
       setSelectedTags([...selectedTags, tagName])
     } else {
       setSelectedTags(selectedTags.filter((t) => t !== tagName))
@@ -95,9 +95,11 @@ export function TagManagement() {
     try {
       await renameTag(tagToRename.name, newTagName.trim())
       toast.success(`標籤「${tagToRename.name}」已重命名為「${newTagName.trim()}」`)
-      queryClient.invalidateQueries({ queryKey: ["tags"] })
-      queryClient.invalidateQueries({ queryKey: ["notes"] })
-      queryClient.invalidateQueries({ queryKey: ["notes-for-tags"] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tags"] }),
+        queryClient.invalidateQueries({ queryKey: ["notes"] }),
+        queryClient.invalidateQueries({ queryKey: ["notes-for-tags"] }),
+      ])
       setRenameDialogOpen(false)
       setTagToRename(null)
       setNewTagName("")
@@ -112,10 +114,12 @@ export function TagManagement() {
 
     try {
       const result = await mergeTags(selectedTags, mergeTargetName.trim())
-      toast.success(`已將 ${selectedTags.length} 個標籤合併到「${mergeTargetName.trim()}」，更新了 ${result.updatedCount} 筆記錄`)
-      queryClient.invalidateQueries({ queryKey: ["tags"] })
-      queryClient.invalidateQueries({ queryKey: ["notes"] })
-      queryClient.invalidateQueries({ queryKey: ["notes-for-tags"] })
+      toast.success(`已將 ${selectedTags.length.toString()} 個標籤合併到「${mergeTargetName.trim()}」，更新了 ${result.updatedCount.toString()} 筆記錄`)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tags"] }),
+        queryClient.invalidateQueries({ queryKey: ["notes"] }),
+        queryClient.invalidateQueries({ queryKey: ["notes-for-tags"] }),
+      ])
       setMergeDialogOpen(false)
       setSelectedTags([])
       setMergeTargetName("")
@@ -132,10 +136,12 @@ export function TagManagement() {
       for (const tagName of selectedTags) {
         await deleteTag(tagName)
       }
-      toast.success(`已刪除 ${selectedTags.length} 個標籤`)
-      queryClient.invalidateQueries({ queryKey: ["tags"] })
-      queryClient.invalidateQueries({ queryKey: ["notes"] })
-      queryClient.invalidateQueries({ queryKey: ["notes-for-tags"] })
+      toast.success(`已刪除 ${selectedTags.length.toString()} 個標籤`)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tags"] }),
+        queryClient.invalidateQueries({ queryKey: ["notes"] }),
+        queryClient.invalidateQueries({ queryKey: ["notes-for-tags"] }),
+      ])
       setDeleteDialogOpen(false)
       setSelectedTags([])
     } catch (error) {
@@ -150,7 +156,7 @@ export function TagManagement() {
           <div className="animate-pulse space-y-4">
             <div className="h-6 bg-slate-200 rounded w-1/4"></div>
             <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
+              {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="h-12 bg-slate-200 rounded"></div>
               ))}
             </div>
@@ -166,7 +172,7 @@ export function TagManagement() {
         <CardContent className="p-6">
           <div className="text-center space-y-4">
             <p className="text-red-600">載入標籤失敗</p>
-            <Button onClick={() => refetch()} variant="outline">
+            <Button onClick={() => void refetch()} variant="outline">
               重試
             </Button>
           </div>
@@ -183,7 +189,7 @@ export function TagManagement() {
             <TagIcon className="h-5 w-5 text-purple-600" />
             標籤管理
             <Badge variant="secondary" className="ml-2">
-              {tags.length} 個標籤
+              {tags.length.toString()} 個標籤
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -196,7 +202,9 @@ export function TagManagement() {
               <Input
                 placeholder="搜尋標籤名稱..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                }}
                 className="pl-10 bg-white/60 border-white/30 focus:border-purple-300 focus:ring-purple-200"
               />
             </div>
@@ -216,12 +224,14 @@ export function TagManagement() {
               {selectedTags.length > 0 && (
                 <>
                   <Badge variant="secondary" className="px-3 py-1">
-                    已選擇 {selectedTags.length} 個標籤
+                    已選擇 {selectedTags.length.toString()} 個標籤
                   </Badge>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setMergeDialogOpen(true)}
+                    onClick={() => {
+                      setMergeDialogOpen(true)
+                    }}
                     className="bg-white/60 text-blue-600 hover:bg-blue-50"
                   >
                     <MergeIcon className="h-4 w-4" />
@@ -230,7 +240,9 @@ export function TagManagement() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setDeleteDialogOpen(true)}
+                    onClick={() => {
+                      setDeleteDialogOpen(true)
+                    }}
                     className="bg-white/60 text-red-600 hover:bg-red-50"
                   >
                     <TrashIcon className="h-4 w-4" />
@@ -249,31 +261,44 @@ export function TagManagement() {
                 className="flex items-center justify-between p-3 bg-white/50 rounded-lg border border-white/30 hover:bg-white/70 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Checkbox
-                    checked={selectedTags.includes(tag.name)}
-                    onCheckedChange={(checked) => handleTagSelect(tag.name, checked as boolean)}
-                  />
-                  <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-200">
-                    <TagIcon className="h-3 w-3" />
-                    {tag.name}
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    <TrendingUpIcon className="h-3 w-3" />
-                    {tag.count} 次使用
-                  </Badge>
+                  <div className="flex-1 min-w-0">
+                    <Checkbox
+                      id={`tag-${tag.name}`}
+                      checked={selectedTags.includes(tag.name)}
+                      onCheckedChange={(checked) => {
+                        handleTagSelect(tag.name, checked)
+                      }}
+                      className="mr-3"
+                    />
+                    <label htmlFor={`tag-${tag.name}`} className="font-medium text-slate-800 cursor-pointer">
+                      {tag.name}
+                    </label>
+                  </div>
+
+                  {/* 標籤數量 */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center text-sm text-slate-500 gap-1">
+                      <TrendingUpIcon className="h-4 w-4" />
+                      <span>{tag.count.toString()}</span>
+                    </div>
+
+                    {/* 操作按鈕 */}
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setTagToRename(tag)
+                          setNewTagName(tag.name)
+                          setRenameDialogOpen(true)
+                        }}
+                        className="h-8 w-8 p-0 hover:bg-slate-100"
+                      >
+                        <EditIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setTagToRename(tag)
-                    setNewTagName(tag.name)
-                    setRenameDialogOpen(true)
-                  }}
-                  className="h-8 w-8 p-0 hover:bg-white/60"
-                >
-                  <EditIcon className="h-4 w-4" />
-                </Button>
               </div>
             ))}
           </div>
@@ -288,94 +313,89 @@ export function TagManagement() {
 
       {/* 重命名標籤對話框 */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent className="bg-white/90 backdrop-blur-md border-white/30">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>重命名標籤</DialogTitle>
             <DialogDescription>
-              將標籤「{tagToRename?.name}」重命名為新名稱
+              將標籤「{tagToRename?.name}」重命名，此操作將更新所有相關筆記。
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <Input
-              placeholder="輸入新的標籤名稱"
               value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              className="bg-white/60"
+              onChange={(e) => {
+                setNewTagName(e.target.value)
+              }}
+              placeholder="輸入新標籤名稱"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRenameDialogOpen(false)
+              }}
+            >
               取消
             </Button>
-            <Button onClick={handleRename} disabled={!newTagName.trim()}>
-              確認重命名
-            </Button>
+            <Button onClick={() => void handleRename()}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* 合併標籤對話框 */}
       <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
-        <DialogContent className="bg-white/90 backdrop-blur-md border-white/30">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>合併標籤</DialogTitle>
             <DialogDescription>
-              將選中的 {selectedTags.length} 個標籤合併到目標標籤
+              將 {selectedTags.length.toString()} 個選定標籤合併到一個新標籤或現有標籤中。
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                選中的標籤：
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {selectedTags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="bg-purple-50">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                合併到（目標標籤）：
-              </label>
-              <Input
-                placeholder="輸入目標標籤名稱"
-                value={mergeTargetName}
-                onChange={(e) => setMergeTargetName(e.target.value)}
-                className="bg-white/60"
-              />
-            </div>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-slate-600">
+              <strong>將合併：</strong> {selectedTags.join(", ")}
+            </p>
+            <Input
+              value={mergeTargetName}
+              onChange={(e) => {
+                setMergeTargetName(e.target.value)
+              }}
+              placeholder="輸入目標標籤名稱"
+            />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMergeDialogOpen(false)
+              }}
+            >
               取消
             </Button>
-            <Button onClick={handleMerge} disabled={!mergeTargetName.trim()}>
-              確認合併
-            </Button>
+            <Button onClick={() => void handleMerge()}>合併</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* 刪除標籤確認對話框 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-white/90 backdrop-blur-md border-white/30">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>確認刪除標籤</AlertDialogTitle>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
             <AlertDialogDescription>
-              確定要刪除選中的 {selectedTags.length} 個標籤嗎？這將從所有筆記中移除這些標籤，此操作無法復原。
+              確定要刪除 {selectedTags.length.toString()} 個選定標籤嗎？此操作將從所有筆記中移除這些標籤，且無法復原。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+            <AlertDialogCancel
+              onClick={() => {
+                setSelectedTags([])
+              }}
             >
-              確認刪除
-            </AlertDialogAction>
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleDelete()}>刪除</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

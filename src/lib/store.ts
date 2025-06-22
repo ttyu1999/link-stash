@@ -23,19 +23,19 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   // 搜尋和篩選
   searchQuery: '',
-  setSearchQuery: (query) => set({ searchQuery: query }),
+  setSearchQuery: (query) => { set({ searchQuery: query }); },
   selectedCategories: [],
-  setSelectedCategories: (categories) => set({ selectedCategories: categories }),
+  setSelectedCategories: (categories) => { set({ selectedCategories: categories }); },
   selectedTags: [],
-  setSelectedTags: (tags) => set({ selectedTags: tags }),
+  setSelectedTags: (tags) => { set({ selectedTags: tags }); },
   
   // 排序
   sortBy: 'createdAt',
-  setSortBy: (sortBy) => set({ sortBy }),
+  setSortBy: (sortBy) => { set({ sortBy }); },
   sortOrder: 'desc',
-  setSortOrder: (order) => set({ sortOrder: order }),
+  setSortOrder: (order) => { set({ sortOrder: order }); },
   
   // UI 狀態
   isAddingNote: false,
-  setIsAddingNote: (isAdding) => set({ isAddingNote: isAdding }),
+  setIsAddingNote: (isAdding) => { set({ isAddingNote: isAdding }); },
 })) 

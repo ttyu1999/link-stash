@@ -46,7 +46,7 @@ export function SearchAndFilter() {
       setSearchQuery(localSearchInput)
     }, 300) // 300ms delay
 
-    return () => clearTimeout(timer)
+    return () => { clearTimeout(timer); }
   }, [localSearchInput, setSearchQuery])
 
   // Sync with external search query changes
@@ -92,11 +92,9 @@ export function SearchAndFilter() {
   const tags = useMemo(() => {
     const tagCounts = new Map<string, number>()
     allNotes.forEach((note: Note) => {
-      if (note.tags && Array.isArray(note.tags)) {
-        note.tags.forEach((tag: string) => {
-          tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
-        })
-      }
+      note.tags.forEach((tag: string) => {
+        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
+      })
     })
 
     return Array.from(tagCounts.entries())
@@ -104,17 +102,19 @@ export function SearchAndFilter() {
       .sort((a, b) => b.count - a.count)
   }, [allNotes])
 
-  const categoryOptions: Option[] = categories.map((cat) => ({
-    value: cat.name,
-    label: `${cat.name} (${cat.count})`,
-  }))
+  const categoryOptions: Option[] = categories
+    .filter((cat): cat is { name: string; count: number } => cat.name !== null)
+    .map((cat) => ({
+      value: cat.name,
+      label: `${cat.name} (${cat.count.toString()})`,
+    }))
 
   const tagOptions: Option[] = tags.map((tag) => ({
     value: tag.name,
-    label: `${tag.name} (${tag.count})`,
+    label: `${tag.name} (${tag.count.toString()})`,
   }))
 
-  const selectedCategoryOptions: Option[] = selectedCategories.map((cat) => ({
+  const selectedCategoryOptions: Option[] = selectedCategories.map((cat: string) => ({
     value: cat,
     label: cat,
   }))
@@ -179,7 +179,7 @@ export function SearchAndFilter() {
               <Input
                 placeholder="搜尋標題、描述或內容..."
                 value={localSearchInput}
-                onChange={(e) => setLocalSearchInput(e.target.value)}
+                onChange={(e) => { setLocalSearchInput(e.target.value); }}
                 className={`pl-12 pr-64 text-base! bg-white/60 border-white/30 focus:border-blue-300 focus:ring-blue-200 rounded-xl transition-all duration-300 ${
                   isSticky ? 'h-12' : 'h-14'
                 }`}
@@ -202,7 +202,7 @@ export function SearchAndFilter() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsExpanded(!isExpanded)}
+                  onClick={() => { setIsExpanded(!isExpanded); }}
                   className={`h-8 px-3 rounded-lg transition-all duration-300 ${
                     hasActiveFilters
                       ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md hover:from-blue-600 hover:to-indigo-700 hover:text-white"
@@ -291,7 +291,7 @@ export function SearchAndFilter() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                  onClick={() => { setSortOrder(sortOrder === "desc" ? "asc" : "desc"); }}
                   className="h-9 bg-white/60 backdrop-blur-sm border-white/30 hover:bg-white/80 rounded-xl shadow-sm"
                 >
                   {sortOrder === "desc" ? (

@@ -10,7 +10,6 @@ import {
   Share2Icon,
   MoreHorizontalIcon,
   CalendarIcon,
-  TagIcon,
   FolderIcon,
   LinkIcon,
   SparklesIcon,
@@ -52,9 +51,7 @@ interface Note {
 
 const formatSafeDate = (dateValue: unknown) => {
   try {
-    if (!dateValue) return "未知時間"
-
-    const date = dateValue instanceof Date ? dateValue : new Date(dateValue as string | number | Date)
+    const date = dateValue instanceof Date ? dateValue : new Date(dateValue as string | number)
 
     if (isNaN(date.getTime())) {
       return "無效日期"
@@ -65,13 +62,13 @@ const formatSafeDate = (dateValue: unknown) => {
     const diffMinutes = Math.floor(diffMs / (1000 * 60))
 
     if (diffMinutes < 1) return "剛剛"
-    if (diffMinutes < 60) return `${diffMinutes} 分鐘前`
+    if (diffMinutes < 60) return `${diffMinutes.toString()} 分鐘前`
 
     const diffHours = Math.floor(diffMinutes / 60)
-    if (diffHours < 24) return `${diffHours} 小時前`
+    if (diffHours < 24) return `${diffHours.toString()} 小時前`
 
     const diffDays = Math.floor(diffHours / 24)
-    if (diffDays < 7) return `${diffDays} 天前`
+    if (diffDays < 7) return `${diffDays.toString()} 天前`
 
     return date.toLocaleDateString("zh-TW")
   } catch {
@@ -119,9 +116,12 @@ export function NotesList() {
     let compareResult = 0
 
     switch (sortBy) {
-      case "createdAt":
-        compareResult = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      case "createdAt": {
+        const timeA = new Date(a.createdAt).getTime()
+        const timeB = new Date(b.createdAt).getTime()
+        compareResult = timeA - timeB
         break
+      }
       case "title":
         compareResult = a.title.localeCompare(b.title)
         break
@@ -142,12 +142,14 @@ export function NotesList() {
       await deleteNote(noteToDelete.id)
       toast.success("筆記已刪除，相關分類和標籤已自動清理")
 
-      queryClient.invalidateQueries({ queryKey: ["notes"] })
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
-      queryClient.invalidateQueries({ queryKey: ["notes-for-tags"] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notes"] }),
+        queryClient.invalidateQueries({ queryKey: ["categories"] }),
+        queryClient.invalidateQueries({ queryKey: ["notes-for-tags"] }),
+      ])
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "刪除失敗")
-      refetch()
+      void refetch()
     } finally {
       setDeleteDialogOpen(false)
       setNoteToDelete(null)
@@ -164,25 +166,22 @@ export function NotesList() {
   }
 
   const handleShare = async (note: Note) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: note.title,
-          text: note.description || "",
-          url: note.url,
-        })
-      } catch {
-        // 用戶取消分享，不顯示錯誤
-      }
-    } else {
-      handleCopyUrl(note.url)
+    try {
+      await navigator.share({
+        title: note.title,
+        text: note.description ?? "",
+        url: note.url,
+      })
+    } catch {
+      // 用戶取消分享，不顯示錯誤，但複製連結作為備用
+      void handleCopyUrl(note.url)
     }
   }
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {[...Array(3)].map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <Card key={i} className="bg-white/60 backdrop-blur-md border-white/30 shadow-lg">
             <CardContent className="p-6">
               <div className="animate-pulse space-y-4">
@@ -219,7 +218,7 @@ export function NotesList() {
     )
   }
 
-  if (!notes || !Array.isArray(notes) || notes.length === 0) {
+  if (notes.length === 0) {
     return (
       <Card className="bg-white/60 backdrop-blur-md border-white/30 shadow-lg">
         <CardContent className="flex flex-col items-center justify-center py-16">
@@ -272,9 +271,9 @@ export function NotesList() {
             key={note.id}
             className="group relative overflow-hidden bg-white/70 backdrop-blur-md border-white/30 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
             style={{
-              animationDelay: `${index * 100}ms`,
+              animationDelay: `${String(index * 100)}ms`,
             }}
-            onClick={(e) => handleCardClick(note.id, e)}
+            onClick={(e) => { handleCardClick(note.id, e); }}
           >
             {/* 裝飾性漸變邊框 */}
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -292,7 +291,14 @@ export function NotesList() {
                 <div className="flex-1 min-w-0">
                   {/* 標題和網址 */}
                   <div className="mb-4">
-                    <h3 className="font-bold text-xl leading-tight mb-2 line-clamp-2 text-slate-900 group-hover:text-blue-600 transition-colors duration-200">{note.title}</h3>
+                    <h3
+                      className="font-semibold text-lg text-slate-800 hover:text-purple-700 transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        handleCardClick(note.id, e)
+                      }}
+                    >
+                      {note.title}
+                    </h3>
                     <a
                       href={note.url}
                       target="_blank"
@@ -306,51 +312,45 @@ export function NotesList() {
 
                   {/* 描述 */}
                   {note.description && (
-                    <p className="text-slate-600 mb-4 line-clamp-3 leading-relaxed text-sm">{note.description}</p>
+                    <p className="text-sm text-slate-600 line-clamp-2">{note.description}</p>
                   )}
 
                   {/* 標籤和分類 */}
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
+                    <div className="flex items-center gap-1.5">
+                      <CalendarIcon className="h-4 w-4" />
+                      <span>{formatSafeDate(note.createdAt)}</span>
+                    </div>
                     {note.category && (
-                      <Badge
-                        variant={selectedCategories.includes(note.category) ? "default" : "secondary"}
-                        className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
-                          selectedCategories.includes(note.category)
-                            ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
-                            : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                        }`}
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleCategoryClick(note.category!)
-                        }}
-                      >
-                        <FolderIcon className="h-3 w-3" />
-                        {note.category}
-                      </Badge>
-                    )}
-                    {Array.isArray(note.tags) &&
-                      note.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="outline"
-                          className="cursor-pointer transition-all duration-200 hover:scale-105 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                      <div className="flex items-center gap-1.5">
+                        <FolderIcon className="h-4 w-4" />
+                        <button
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            handleTagClick(tag)
+                            handleCategoryClick(note.category ?? "")
                           }}
+                          className="hover:underline"
                         >
-                          <TagIcon className="h-3 w-3" />
-                          {tag}
-                        </Badge>
-                      ))}
+                          {note.category}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* 時間戳 */}
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <CalendarIcon className="h-3 w-3" />
-                    <span>{formatSafeDate(note.createdAt)}</span>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {note.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="outline"
+                        onClick={() => {
+                          handleTagClick(tag)
+                        }}
+                        className="cursor-pointer bg-white/70 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
 
@@ -367,11 +367,19 @@ export function NotesList() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-white/90 backdrop-blur-md border-white/30">
-                      <DropdownMenuItem onClick={() => handleCopyUrl(note.url)}>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          void handleCopyUrl(note.url)
+                        }}
+                      >
                         <CopyIcon className="h-4 w-4" />
                         複製網址
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleShare(note)}>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          void handleShare(note)
+                        }}
+                      >
                         <Share2Icon className="h-4 w-4" />
                         分享
                       </DropdownMenuItem>
@@ -381,7 +389,9 @@ export function NotesList() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={() => handleDeleteClick(note.id, note.title)}
+                        onClick={() => {
+                          handleDeleteClick(note.id, note.title)
+                        }}
                         className="text-red-600 focus:text-red-600 focus:bg-red-50"
                       >
                         <TrashIcon className="text-red-600 h-4 w-4" />
@@ -410,7 +420,9 @@ export function NotesList() {
               取消
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteConfirm}
+              onClick={() => {
+                void handleDeleteConfirm()
+              }}
               className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
             >
               刪除

@@ -30,8 +30,10 @@ export function Header() {
       toast.success("網址保存成功！")
       setUrl("")
 
-      queryClient.invalidateQueries({ queryKey: ["notes"] })
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["notes"] }),
+        queryClient.invalidateQueries({ queryKey: ["categories"] }),
+      ])
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "保存失敗")
     } finally {
@@ -61,12 +63,14 @@ export function Header() {
         </div>
 
         {/* 添加網址表單 */}
-        <form onSubmit={handleSubmit} className="hidden md:flex items-center gap-3">
+        <form onSubmit={(e) => void handleSubmit(e)} className="hidden md:flex items-center gap-3">
           <div className="relative">
             <Input
               placeholder="貼上網址，AI 自動分析..."
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value)
+              }}
               disabled={isLoading}
               className="w-80 h-12 pl-4 pr-4 bg-white/60 backdrop-blur-sm border-white/30 focus:border-blue-300 focus:ring-blue-200 rounded-xl shadow-sm"
             />

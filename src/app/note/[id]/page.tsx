@@ -51,18 +51,15 @@ export default function NotePage({ params }: PageProps) {
   const handleShare = async () => {
     if (!note) return
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: note.title,
-          text: note.description || "",
-          url: note.url,
-        })
-      } catch {
-        // 用戶取消分享，不顯示錯誤
-      }
-    } else {
-      handleCopyUrl(note.url)
+    try {
+      await navigator.share({
+        title: note.title,
+        text: note.description ?? "",
+        url: note.url,
+      })
+    } catch {
+      // 用戶取消分享，不顯示錯誤，但複製連結作為備用
+      void handleCopyUrl(note.url)
     }
   }
 
@@ -107,8 +104,10 @@ export default function NotePage({ params }: PageProps) {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => handleCopyUrl(note.url)}
-              className="bg-white/60 backdrop-blur-sm border-white/30 hover:bg-white/80 rounded-xl shadow-sm"
+              onClick={() => {
+                void handleCopyUrl(note.url)
+              }}
+              className="bg-white/60 backdrop-blur-sm border border-white/30 hover:bg-white/80 rounded-xl shadow-sm"
             >
               <CopyIcon className="h-4 w-4" />
               複製網址
@@ -116,8 +115,10 @@ export default function NotePage({ params }: PageProps) {
             <Button
               variant="outline"
               size="lg"
-              onClick={handleShare}
-              className="bg-white/60 backdrop-blur-sm border-white/30 hover:bg-white/80 rounded-xl shadow-sm"
+              onClick={() => {
+                void handleShare()
+              }}
+              className="bg-white/60 backdrop-blur-sm border border-white/30 hover:bg-white/80 rounded-xl shadow-sm"
             >
               <Share2Icon className="h-4 w-4" />
               分享
@@ -226,13 +227,13 @@ export default function NotePage({ params }: PageProps) {
                       相關標籤
                     </h4>
                     <div className="flex flex-wrap gap-3">
-                      {note.tags.map((tag, index) => (
+                      {note.tags.map((tag: string, index: number) => (
                         <Badge
                           key={tag}
                           variant="outline"
                           className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 transition-colors duration-200 text-sm px-4 py-2"
                           style={{
-                            animationDelay: `${index * 100}ms`,
+                            animationDelay: `${String(index * 100)}ms`,
                           }}
                         >
                           <TagIcon className="h-3 w-3" />
@@ -264,7 +265,9 @@ export default function NotePage({ params }: PageProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleCopyUrl(note.url)}
+                    onClick={() => {
+                      void handleCopyUrl(note.url)
+                    }}
                     className="ml-4 hover:bg-white/60 rounded-lg"
                   >
                     <CopyIcon className="h-4 w-4" />

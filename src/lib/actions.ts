@@ -4,6 +4,20 @@ import { prisma } from './prisma'
 import { revalidatePath } from 'next/cache'
 
 // 擷取網頁內容的介面
+interface JinaData {
+  title?: string;
+  description?: string;
+  content?: string;
+  markdown?: string;
+}
+
+interface JinaApiResponse {
+  code: number;
+  status: string;
+  data?: JinaData;
+}
+
+// 擷取網頁內容的介面
 interface JinaResponse {
   title: string
   description: string
@@ -26,11 +40,11 @@ async function fetchWebContent(url: string): Promise<JinaResponse> {
       throw new Error(`Failed to fetch content: ${response.statusText}`)
     }
 
-    const data = await response.json()
-    console.log('🔍 Jina API 回應狀態:', data.code, data.status);
+    const data = (await response.json()) as JinaApiResponse
+    console.log('🔍 Jina API 回應狀態:', data.code, data.status)
     
     // 🎯 修正數據結構：Jina API 的內容在 data.data 中
-    const apiData = data.data || data
+    const apiData = data.data || {}
     const extractedContent = apiData.content || apiData.markdown || ''
     
     console.log('📝 擷取的內容長度:', extractedContent.length)
@@ -71,10 +85,10 @@ async function getExistingCategoriesAndTags(): Promise<{
       })
     ])
 
-    const categories = categoryData.map((c: { category: string | null }) => c.category!).filter(Boolean)
+    const categories = categoryData.map((c: { category: string | null }) => c.category).filter(Boolean) as string[]
     
     // 展開所有標籤並去重
-    const allTags = tagData.flatMap(note => note.tags)
+    const allTags = tagData.flatMap((note: { tags: string[] }) => note.tags)
     const uniqueTags = [...new Set(allTags)].filter(Boolean)
     
     return { categories, tags: uniqueTags }
@@ -82,6 +96,22 @@ async function getExistingCategoriesAndTags(): Promise<{
     console.error('Error fetching existing categories and tags:', error)
     return { categories: [], tags: [] }
   }
+}
+
+interface GroqChoice {
+  message: {
+    content: string;
+  };
+}
+
+interface GroqApiResponse {
+  choices: GroqChoice[];
+}
+
+interface AnalysisResult {
+  category?: string;
+  tags?: string[];
+  summary?: string;
 }
 
 // 使用AI進行內容分析（分類、標籤、摘要一次完成）
@@ -189,10 +219,10 @@ ${markdown.slice(0, 3500)}
       }
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as GroqApiResponse
     console.log('AI 回復內容:', data.choices[0].message.content)
     
-    let result
+    let result: AnalysisResult
     try {
       let jsonContent = data.choices[0].message.content.trim()
       
@@ -204,7 +234,7 @@ ${markdown.slice(0, 3500)}
       }
       
       console.log('🔧 清理後的 JSON 內容:', jsonContent)
-      result = JSON.parse(jsonContent)
+      result = JSON.parse(jsonContent) as AnalysisResult
     } catch (parseError) {
       console.log('JSON 解析失敗:', parseError)
       console.log('原始內容:', data.choices[0].message.content)
@@ -374,19 +404,17 @@ async function cleanupOrphanedCategoriesAndTags(deletedCategory: string | null, 
     }
 
     // 清理孤兒標籤
-    if (deletedTags && deletedTags.length > 0) {
-      for (const tag of deletedTags) {
-        const remainingNotesWithTag = await prisma.note.count({
-          where: { tags: { has: tag } }
+    for (const tag of deletedTags) {
+      const remainingNotesWithTag = await prisma.note.count({
+        where: { tags: { has: tag } }
+      })
+      
+      if (remainingNotesWithTag === 0) {
+        // 如果沒有其他筆記使用這個標籤，從 Tag 表中刪除
+        await prisma.tag.deleteMany({
+          where: { name: tag }
         })
-        
-        if (remainingNotesWithTag === 0) {
-          // 如果沒有其他筆記使用這個標籤，從 Tag 表中刪除
-          await prisma.tag.deleteMany({
-            where: { name: tag }
-          })
-          console.log(`🗑️ 清理孤兒標籤: ${tag}`)
-        }
+        console.log(`🗑️ 清理孤兒標籤: ${tag}`)
       }
     }
   } catch (error) {
@@ -407,9 +435,9 @@ export async function getCategories() {
       orderBy: { _count: { category: 'desc' } }
     })
 
-    return categories.map((c: { category: string | null; _count: { category: number } }) => ({
-      name: c.category!,
-      count: c._count.category
+    return categories.map((c) => ({
+      name: c.category,
+      count: c._count.category,
     }))
   } catch (error) {
     console.error('Error fetching categories:', error)
@@ -429,11 +457,9 @@ export async function getTags() {
 
     const tagCounts = new Map<string, number>()
     notes.forEach(note => {
-      if (note.tags && Array.isArray(note.tags)) {
-        note.tags.forEach(tag => {
-          tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
-        })
-      }
+      note.tags.forEach(tag => {
+        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
+      })
     })
 
     return Array.from(tagCounts.entries())
@@ -464,7 +490,7 @@ export async function renameTag(oldName: string, newName: string) {
 
     // 批量更新標籤
     for (const note of notesWithOldTag) {
-      const updatedTags = note.tags.map(tag => tag === oldName ? newName : tag)
+      const updatedTags = note.tags.map(t => (t === oldName ? newName : t))
       await prisma.note.update({
         where: { id: note.id },
         data: { tags: updatedTags }
@@ -529,26 +555,48 @@ export async function mergeTags(sourceTags: string[], targetTag: string) {
 // 刪除標籤
 export async function deleteTag(tagName: string) {
   try {
-    // 找到所有使用該標籤的筆記
-    const notesWithTag = await prisma.note.findMany({
-      where: { tags: { has: tagName } }
+    const notesToUpdate = await prisma.note.findMany({
+      where: {
+        tags: {
+          has: tagName,
+        },
+      },
     })
 
-    // 從所有筆記中移除該標籤
-    for (const note of notesWithTag) {
-      const updatedTags = note.tags.filter(tag => tag !== tagName)
-      await prisma.note.update({
+    const updatePromises = notesToUpdate.map((note) =>
+      prisma.note.update({
         where: { id: note.id },
-        data: { tags: updatedTags }
+        data: {
+          tags: {
+            set: note.tags.filter((t) => t !== tagName),
+          },
+        },
       })
-    }
+    )
 
-    revalidatePath('/')
-    return { success: true, removedFrom: notesWithTag.length }
+    await Promise.all(updatePromises)
+
+    return { success: true }
   } catch (error) {
-    console.error('Error deleting tag:', error)
-    throw new Error('刪除標籤失敗')
+    console.error(`Error deleting tag ${tagName}:`, error)
+    throw new Error("刪除標籤失敗")
   }
+}
+
+// 更新分類
+export async function updateCategory(id: string, category: string | null) {
+  return prisma.note.update({
+    where: { id },
+    data: { category },
+  })
+}
+
+// 更新標籤
+export async function updateTags(id: string, tags: string[]) {
+  return prisma.note.update({
+    where: { id },
+    data: { tags },
+  })
 }
 
  
