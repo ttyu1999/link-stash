@@ -29,12 +29,16 @@ const eslintConfig = tseslint.config(
       },
     },
     rules: {
-      // ⚠️ 針對 'any' 類型的客製化規則
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      // 你可以根據需要調整更多規則
+      // ⚠️ 針對 'any' 類型的嚴格規則
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-implied-eval': 'error',
+      // 檢查隱式 any 的規則
+      '@typescript-eslint/no-unsafe-enum-comparison': 'error',
     },
   },
 
