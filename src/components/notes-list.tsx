@@ -1,13 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   ExternalLinkIcon,
   TrashIcon,
-  EyeIcon,
   CopyIcon,
   Share2Icon,
   MoreHorizontalIcon,
@@ -52,11 +50,11 @@ interface Note {
   createdAt: Date
 }
 
-const formatSafeDate = (dateValue: any) => {
+const formatSafeDate = (dateValue: unknown) => {
   try {
     if (!dateValue) return "未知時間"
 
-    const date = dateValue instanceof Date ? dateValue : new Date(dateValue)
+    const date = dateValue instanceof Date ? dateValue : new Date(dateValue as string | number | Date)
 
     if (isNaN(date.getTime())) {
       return "無效日期"
@@ -147,8 +145,8 @@ export function NotesList() {
       queryClient.invalidateQueries({ queryKey: ["notes"] })
       queryClient.invalidateQueries({ queryKey: ["categories"] })
       queryClient.invalidateQueries({ queryKey: ["notes-for-tags"] })
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "刪除失敗")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "刪除失敗")
       refetch()
     } finally {
       setDeleteDialogOpen(false)
@@ -173,7 +171,7 @@ export function NotesList() {
           text: note.description || "",
           url: note.url,
         })
-      } catch (err) {
+      } catch {
         // 用戶取消分享，不顯示錯誤
       }
     } else {

@@ -9,14 +9,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { saveUrl } from "@/lib/actions"
-import { useAppStore } from "@/lib/store"
 import { toast } from "sonner"
 
 export function AddUrlForm() {
   const [url, setUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
-  const { searchQuery, selectedCategories } = useAppStore()
   const queryClient = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -37,7 +35,7 @@ export function AddUrlForm() {
     setIsLoading(true)
 
     try {
-      const result = await saveUrl(url.trim())
+      await saveUrl(url.trim())
       toast.success("網址保存成功！AI 正在分析內容...")
       setUrl("")
       setIsExpanded(false)

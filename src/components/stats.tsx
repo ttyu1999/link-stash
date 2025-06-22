@@ -5,6 +5,15 @@ import { BookmarkIcon, TagIcon, FolderIcon, TrendingUpIcon } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { getNotes, getCategories } from "@/lib/actions"
 
+interface Note {
+  id: string
+  title: string
+  description: string | null
+  category: string | null
+  tags: string[]
+  createdAt: Date
+}
+
 export function Stats() {
   const { data: notes = [] } = useQuery({
     queryKey: ["notes"],
@@ -18,9 +27,9 @@ export function Stats() {
 
   const totalNotes = notes.length
   const totalCategories = categories.length
-  const allTags = notes.flatMap((note: any) => note.tags || [])
+  const allTags = notes.flatMap((note: Note) => note.tags || [])
   const uniqueTags = [...new Set(allTags)].length
-  const thisWeekNotes = notes.filter((note: any) => {
+  const thisWeekNotes = notes.filter((note: Note) => {
     const noteDate = new Date(note.createdAt)
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     return noteDate > weekAgo

@@ -11,6 +11,15 @@ import MultipleSelector, { type Option } from "@/components/ui/multiple-selector
 import { useAppStore } from "@/lib/store"
 import { getCategories, getNotes } from "@/lib/actions"
 
+interface Note {
+  id: string
+  title: string
+  description: string | null
+  category: string | null
+  tags: string[]
+  createdAt: Date
+}
+
 export function SearchAndFilter() {
   const {
     searchQuery,
@@ -28,7 +37,7 @@ export function SearchAndFilter() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [localSearchInput, setLocalSearchInput] = useState(searchQuery)
   const [isSticky, setIsSticky] = useState(false)
-  const stickyRef = useRef<HTMLDivElement>(null)
+
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Debounce search input
@@ -82,7 +91,7 @@ export function SearchAndFilter() {
 
   const tags = useMemo(() => {
     const tagCounts = new Map<string, number>()
-    allNotes.forEach((note: any) => {
+    allNotes.forEach((note: Note) => {
       if (note.tags && Array.isArray(note.tags)) {
         note.tags.forEach((tag: string) => {
           tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)

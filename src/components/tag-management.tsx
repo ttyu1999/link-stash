@@ -8,10 +8,7 @@ import {
   TrashIcon,
   MergeIcon,
   SearchIcon,
-  PlusIcon,
   TrendingUpIcon,
-  FilterIcon,
-  XIcon,
   CheckIcon,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

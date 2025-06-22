@@ -58,7 +58,7 @@ export default function NotePage({ params }: PageProps) {
           text: note.description || "",
           url: note.url,
         })
-      } catch (err) {
+      } catch {
         // 用戶取消分享，不顯示錯誤
       }
     } else {

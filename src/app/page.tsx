@@ -1,11 +1,9 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Suspense } from "react"
 import { NotesList } from "@/components/notes-list"
 import { SearchAndFilter } from "@/components/search-and-filter"
 import { Stats } from "@/components/stats"
-import { Header } from "@/components/header"
-import { AddUrlForm } from "@/components/add-url-form"
 import { TagManagement } from "@/components/tag-management"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BookmarkIcon, TagIcon, BarChart3Icon } from "lucide-react"

@@ -28,8 +28,6 @@ interface MultipleSelectorProps {
   /** manually controlled options */
   options?: Option[]
   placeholder?: string
-  /** Loading component. */
-  loadingIndicator?: React.ReactNode
   /** Empty component. */
   emptyIndicator?: React.ReactNode
   /** Debounce time for async search. Only work with `onSearch`. */
@@ -173,7 +171,6 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
       delay,
       onSearch,
       onSearchSync,
-      loadingIndicator,
       emptyIndicator,
       maxSelected = Number.MAX_SAFE_INTEGER,
       onMaxSelected,
@@ -304,7 +301,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
       }
 
       void exec()
-    }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus])
+    }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus, onSearchSync])
 
     useEffect(() => {
       const doSearch = async () => {
@@ -327,7 +324,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
       }
 
       void exec()
-    }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus])
+    }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus, onSearch])
 
     const CreatableItem = () => {
       if (!creatable) return undefined
@@ -358,7 +355,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
           }}
         >
           <Plus className="h-4 w-4 text-blue-500" />
-          <span className="text-blue-600 font-medium">創建 "{inputValue}"</span>
+          <span className="text-blue-600 font-medium">創建 &quot;{inputValue}&quot;</span>
         </CommandItem>
       )
 

@@ -2,7 +2,6 @@
 
 import { prisma } from './prisma'
 import { revalidatePath } from 'next/cache'
-import { Prisma } from '@prisma/client'
 
 // 擷取網頁內容的介面
 interface JinaResponse {
@@ -72,7 +71,7 @@ async function getExistingCategoriesAndTags(): Promise<{
       })
     ])
 
-    const categories = categoryData.map((c: any) => c.category!).filter(Boolean)
+    const categories = categoryData.map((c: { category: string | null }) => c.category!).filter(Boolean)
     
     // 展開所有標籤並去重
     const allTags = tagData.flatMap(note => note.tags)
@@ -408,7 +407,7 @@ export async function getCategories() {
       orderBy: { _count: { category: 'desc' } }
     })
 
-    return categories.map((c: any) => ({
+    return categories.map((c: { category: string | null; _count: { category: number } }) => ({
       name: c.category!,
       count: c._count.category
     }))
