@@ -435,7 +435,7 @@ export async function getCategories() {
       orderBy: { _count: { category: 'desc' } }
     })
 
-    return categories.map((c) => ({
+    return categories.map((c: { category: string | null; _count: { category: number } }) => ({
       name: c.category,
       count: c._count.category,
     }))
@@ -456,8 +456,8 @@ export async function getTags() {
     })
 
     const tagCounts = new Map<string, number>()
-    notes.forEach(note => {
-      note.tags.forEach(tag => {
+    notes.forEach((note: { tags: string[] }) => {
+      note.tags.forEach((tag: string) => {
         tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
       })
     })
@@ -490,7 +490,7 @@ export async function renameTag(oldName: string, newName: string) {
 
     // 批量更新標籤
     for (const note of notesWithOldTag) {
-      const updatedTags = note.tags.map(t => (t === oldName ? newName : t))
+      const updatedTags = note.tags.map((t: string) => (t === oldName ? newName : t))
       await prisma.note.update({
         where: { id: note.id },
         data: { tags: updatedTags }
@@ -521,7 +521,7 @@ export async function mergeTags(sourceTags: string[], targetTag: string) {
       let hasChanges = false
 
       // 移除來源標籤，添加目標標籤
-      sourceTags.forEach(sourceTag => {
+      sourceTags.forEach((sourceTag: string) => {
         const index = updatedTags.indexOf(sourceTag)
         if (index > -1) {
           updatedTags.splice(index, 1)
@@ -563,12 +563,12 @@ export async function deleteTag(tagName: string) {
       },
     })
 
-    const updatePromises = notesToUpdate.map((note) =>
+    const updatePromises = notesToUpdate.map((note: { id: string; tags: string[] }) =>
       prisma.note.update({
         where: { id: note.id },
         data: {
           tags: {
-            set: note.tags.filter((t) => t !== tagName),
+            set: note.tags.filter((t: string) => t !== tagName),
           },
         },
       })
