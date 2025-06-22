@@ -30,8 +30,8 @@ async function fetchWebContent(url: string): Promise<JinaResponse> {
     const response = await fetch(`https://r.jina.ai/${url}`, {
       headers: {
         'Accept': 'application/json',
-        ...(process.env.JINA_API_KEY && {
-          'Authorization': `Bearer ${process.env.JINA_API_KEY}`
+        ...(process.env['JINA_API_KEY'] && {
+          'Authorization': `Bearer ${process.env['JINA_API_KEY']}`
         })
       }
     })
@@ -89,7 +89,7 @@ async function getExistingCategoriesAndTags(): Promise<{
     
     // 展開所有標籤並去重
     const allTags = tagData.flatMap((note: { tags: string[] }) => note.tags)
-    const uniqueTags = [...new Set(allTags)].filter(Boolean) as string[]
+    const uniqueTags = Array.from(new Set(allTags)).filter((tag): tag is string => Boolean(tag))
     
     return { categories, tags: uniqueTags }
   } catch (error) {
@@ -124,7 +124,7 @@ async function analyzeContent(title: string, markdown: string): Promise<{
   console.log('📄 傳入內容長度:', markdown.length)
   console.log('📄 傳入內容預覽:', markdown.slice(0, 300))
   
-  if (!process.env.GROQ_API_KEY) {
+  if (!process.env['GROQ_API_KEY']) {
     console.log("GROQ_API_KEY is not set, 使用默認值");
     return { 
       category: '未分類', 
@@ -143,7 +143,7 @@ async function analyzeContent(title: string, markdown: string): Promise<{
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+        'Authorization': `Bearer ${process.env['GROQ_API_KEY']}`
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
@@ -213,18 +213,18 @@ ${markdown.slice(0, 3500)}
     if (!response.ok) {
       console.log('AI 服務暫時不可用，使用默認值')
       return { 
-        category: categories.length > 0 ? categories[0] : '未分類', 
+        category: categories.length > 0 ? (categories[0] ?? '未分類') : '未分類', 
         tags: [], 
         summary: title 
       }
     }
 
     const data = (await response.json()) as GroqApiResponse
-    console.log('AI 回復內容:', data.choices[0].message.content)
+    console.log('AI 回復內容:', data.choices[0]?.message.content)
     
     let result: AnalysisResult
     try {
-      let jsonContent = data.choices[0].message.content.trim()
+      let jsonContent = data.choices[0]?.message.content.trim() || ''
       
       // 🎯 處理 markdown 代碼塊格式
       if (jsonContent.startsWith('```json')) {
@@ -237,16 +237,16 @@ ${markdown.slice(0, 3500)}
       result = JSON.parse(jsonContent) as AnalysisResult
     } catch (parseError) {
       console.log('JSON 解析失敗:', parseError)
-      console.log('原始內容:', data.choices[0].message.content)
+      console.log('原始內容:', data.choices[0]?.message.content)
       return { 
-        category: categories.length > 0 ? categories[0] : '未分類', 
+        category: categories.length > 0 ? (categories[0] ?? '未分類') : '未分類', 
         tags: [], 
         summary: title 
       }
     }
     
     const analysisResult = {
-      category: result.category || (categories.length > 0 ? categories[0] : '未分類'),
+      category: result.category || (categories.length > 0 ? (categories[0] ?? '未分類') : '未分類'),
       tags: result.tags || [],
       summary: result.summary || title
     }
@@ -257,7 +257,7 @@ ${markdown.slice(0, 3500)}
   } catch (error) {
     console.error('Error analyzing content:', error)
     return { 
-      category: categories.length > 0 ? categories[0] : '未分類', 
+      category: categories.length > 0 ? (categories[0] ?? '未分類') : '未分類', 
       tags: [], 
       summary: title 
     }
@@ -463,7 +463,7 @@ export async function getTags() {
     })
 
     return Array.from(tagCounts.entries())
-      .map(([name, count]) => ({ name, count }))
+      .map(([name, count]: [string, number]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
   } catch (error) {
     console.error('Error fetching tags:', error)
