@@ -103,8 +103,8 @@ export function SearchAndFilter() {
   }, [allNotes])
 
   const categoryOptions: Option[] = categories
-    .filter((cat): cat is { name: string; count: number } => cat.name !== null)
-    .map((cat) => ({
+    .filter((cat: { name: string | null; count: number }): cat is { name: string; count: number } => cat.name !== null)
+    .map((cat: { name: string; count: number }) => ({
       value: cat.name,
       label: `${cat.name} (${cat.count.toString()})`,
     }))
@@ -125,7 +125,7 @@ export function SearchAndFilter() {
   }))
 
   const handleCategoryChange = (options: Option[]) => {
-    const newCategories = options.map((opt) => opt.value)
+    const newCategories = options.map((opt: Option) => opt.value)
     setSelectedCategories(newCategories)
     
     // 當分類改變時，清除可能無效的標籤選擇
@@ -136,7 +136,7 @@ export function SearchAndFilter() {
   }
 
   const handleTagChange = (options: Option[]) => {
-    setSelectedTags(options.map((opt) => opt.value))
+    setSelectedTags(options.map((opt: Option) => opt.value))
   }
 
   const clearFilters = () => {
