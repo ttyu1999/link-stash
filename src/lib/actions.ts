@@ -89,7 +89,7 @@ async function getExistingCategoriesAndTags(): Promise<{
     
     // 展開所有標籤並去重
     const allTags = tagData.flatMap((note: { tags: string[] }) => note.tags)
-    const uniqueTags = [...new Set(allTags)].filter(Boolean)
+    const uniqueTags = [...new Set(allTags)].filter(Boolean) as string[]
     
     return { categories, tags: uniqueTags }
   } catch (error) {
