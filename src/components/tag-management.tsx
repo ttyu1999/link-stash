@@ -84,7 +84,7 @@ export function TagManagement() {
     if (selectedTags.length === filteredTags.length) {
       setSelectedTags([])
     } else {
-      setSelectedTags(filteredTags.map((tag) => tag.name))
+      setSelectedTags(filteredTags.map((tag: Tag) => tag.name))
     }
   }
 
@@ -255,7 +255,7 @@ export function TagManagement() {
 
           {/* 標籤列表 */}
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {filteredTags.map((tag) => (
+            {filteredTags.map((tag: Tag) => (
               <div
                 key={tag.name}
                 className="flex items-center justify-between p-3 bg-white/50 rounded-lg border border-white/30 hover:bg-white/70 transition-colors"

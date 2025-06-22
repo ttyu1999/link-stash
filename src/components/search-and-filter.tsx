@@ -109,7 +109,7 @@ export function SearchAndFilter() {
       label: `${cat.name} (${cat.count.toString()})`,
     }))
 
-  const tagOptions: Option[] = tags.map((tag) => ({
+  const tagOptions: Option[] = tags.map((tag: { name: string; count: number }) => ({
     value: tag.name,
     label: `${tag.name} (${tag.count.toString()})`,
   }))
@@ -119,7 +119,7 @@ export function SearchAndFilter() {
     label: cat,
   }))
 
-  const selectedTagOptions: Option[] = selectedTags.map((tag) => ({
+  const selectedTagOptions: Option[] = selectedTags.map((tag: string) => ({
     value: tag,
     label: tag,
   }))

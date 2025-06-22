@@ -339,7 +339,7 @@ export function NotesList() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {note.tags.map((tag) => (
+                    {note.tags.map((tag: string) => (
                       <Badge
                         key={tag}
                         variant="outline"

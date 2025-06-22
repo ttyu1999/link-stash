@@ -73,7 +73,7 @@ export function Stats() {
 
       <CardContent className="relative p-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat, index) => {
+          {stats.map((stat: { title: string; value: number; icon: React.ElementType; gradient: string; change: string }, index: number) => {
             const IconComponent = stat.icon
             return (
               <div
